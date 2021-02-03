@@ -1,8 +1,8 @@
 # seccomp-prolog
 
-A simple seccomp BPF filter verifier written in Prolog. Who doesn't love Prolog?
+A seccomp BPF filter verifier written in Prolog, to parse, analyze and list system calls and arguments allowed by a given filter.
 
-I will push the filter dump source code as soon as it is  enough.
+It can use seccomp programs written by hand, or dumped from actual programs using https://github.com/mtth-bfft/seccomp-dump
 
 ## Usage
 
