@@ -1,30 +1,6 @@
-% Prolog verifier for seccomp-bpf filters
-% Usage: enter bpf_op() statements at the end, then use a query along the lines of:
-%
-%   ? - filter_accepts(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6).
-%
-% Copyright (c) 2018 Matthieu Buffet
-
-% Permission is hereby granted, free of charge, to any person obtaining a copy
-% of this software and associated documentation files (the "Software"), to deal
-% in the Software without restriction, including without limitation the rights
-% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-% copies of the Software, and to permit persons to whom the Software is
-% furnished to do so, subject to the following conditions:
-
-% The above copyright notice and this permission notice shall be included in all
-% copies or substantial portions of the Software.
-
-% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-% SOFTWARE.
-
 :- use_module(library(clpfd)).
 
+% Basic bounds enforced on kernel-provided variables due to their intrinsic storage size (see struct seccomp_data definition)
 valid(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6) :-
     Nr #>= 0, Nr #=< 0xffffffff,
     Arch #>= 0, Arch #=< 0xffffffff,
@@ -36,6 +12,7 @@ valid(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6) :-
     Arg5 #>= 0, Arg5 #=< 0xffffffffffffffff,
     Arg6 #>= 0, Arg6 #=< 0xffffffffffffffff.
 
+% 16 memory slots can be read using an index in the [0;15] range
 read_mem(M0, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, 0, M0).
 read_mem(_, M1, _, _, _, _, _, _, _, _, _, _, _, _, _, _, 1, M1).
 read_mem(_, _, M2, _, _, _, _, _, _, _, _, _, _, _, _, _, 2, M2).
@@ -53,6 +30,7 @@ read_mem(_, _, _, _, _, _, _, _, _, _, _, _, _, M13, _, _, 13, M13).
 read_mem(_, _, _, _, _, _, _, _, _, _, _, _, _, _, M14, _, 14, M14).
 read_mem(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, M15, 15, M15).
 
+% The same 16 memory slots can be written to, which preserves all slots except the one indexed
 write_mem(_, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, NewVal, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, 0, NewVal).
 write_mem(M0, _, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, M0, NewVal, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, 1, NewVal).
 write_mem(M0, M1, _, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, M0, M1, NewVal, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, 2, NewVal).
@@ -112,10 +90,10 @@ path_exists(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6,
 % BPF_LD | BPF_W | BPF_ABS
 transition_exists(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6,
     Nstep, _, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
-    Nnextstep, ReadRes, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
+    Nnextstep, ReadResult, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
     bpf_op(Nstep, bpf_ld_w_abs, _, _, K),
     Nnextstep #= Nstep + 1,
-    raw_read_w(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, K, ReadRes).
+    raw_read_w(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, K, ReadResult).
 
 % BPF_LD | BPF_W | BPF_LEN
 transition_exists(_, _, _, _, _, _, _, _, _,
@@ -127,18 +105,18 @@ transition_exists(_, _, _, _, _, _, _, _, _,
 % BPF_LD | BPF_W | BPF_MEM
 transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, _, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
-    Nnextstep, ReadRes, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
+    Nnextstep, ReadResult, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
     bpf_op(Nstep, bpf_ld_mem, _, _, K),
     Nnextstep #= Nstep + 1,
-    read_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, K, ReadRes).
+    read_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, K, ReadResult).
 
 % BPF_LDX | BPF_W | BPF_MEM
 transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, A, _, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
-    Nnextstep, A, ReadRes, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
+    Nnextstep, A, ReadResult, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
     bpf_op(Nstep, bpf_ldx_mem, _, _, K),
     Nnextstep #= Nstep + 1,
-    read_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, K, ReadRes).
+    read_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, K, ReadResult).
 
 % BPF_LDX | BPF_W | BPF_LEN
 transition_exists(_, _, _, _, _, _, _, _, _,
@@ -480,7 +458,7 @@ filter_accepts(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6) :-
     path_exists(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6,
         0,      _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
         Nfinal, A, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _).
-% Or paths that just begin in a final state (e.g. one-intruction ret 0x7fff0000)
+% Or paths that just begin in a final state (e.g. first and only instruction is a return allow)
 filter_accepts(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6) :-
     valid(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6),
     step_accepts(0, _).
