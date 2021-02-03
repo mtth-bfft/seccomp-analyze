@@ -48,9 +48,23 @@ write_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, _, M14, M15, M0
 write_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, _, M15, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, NewVal, M15, 14, NewVal).
 write_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, _, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, NewVal, 15, NewVal).
 
-raw_read_w(Nr, _, _, _, _, _, _, _, _, 0, Nr) :- Nr #>= 0, Nr #=< 4294967295.
-raw_read_w(_, Arch, _, _, _, _, _, _, _, 4, Arch) :- Arch #>= 0, Arch #=< 4294967295.
-% TODO: partial reads of 4 bytes out of 8 (64-bit RIP and args) (have to be 4-byte aligned, yay!) raw_read_w(_, _, Rip, _, _, _, _, _, _, 8, Res) :- Res #= Rip &...
+% Reading from the struct seccomp_data (reads must be 4-byte aligned)
+raw_read_w(Nr, _, _, _, _, _, _, _, _, 0, Nr).
+raw_read_w(_, Arch, _, _, _, _, _, _, _, 4, Arch).
+raw_read_w(_, _, RIP, _, _, _, _, _, _, 8, ReadResult) :- ReadResult #= RIP /\ 0xFFFFFFFF.
+raw_read_w(_, _, RIP, _, _, _, _, _, _, 12, ReadResult) :- HighPart #= RIP /\ 0xFFFFFFFF00000000, ReadResult #= HighPart >> 32.
+raw_read_w(_, _, _, Arg1, _, _, _, _, _, 16, ReadResult) :- ReadResult #= Arg1 /\ 0xFFFFFFFF.
+raw_read_w(_, _, _, Arg1, _, _, _, _, _, 20, ReadResult) :- HighPart #= Arg1 /\ 0xFFFFFFFF00000000, ReadResult #= HighPart >> 32.
+raw_read_w(_, _, _, _, Arg2, _, _, _, _, 24, ReadResult) :- ReadResult #= Arg2 /\ 0xFFFFFFFF.
+raw_read_w(_, _, _, _, Arg2, _, _, _, _, 28, ReadResult) :- HighPart #= Arg2 /\ 0xFFFFFFFF00000000, ReadResult #= HighPart >> 32.
+raw_read_w(_, _, _, _, _, Arg3, _, _, _, 32, ReadResult) :- ReadResult #= Arg3 /\ 0xFFFFFFFF.
+raw_read_w(_, _, _, _, _, Arg3, _, _, _, 36, ReadResult) :- HighPart #= Arg3 /\ 0xFFFFFFFF00000000, ReadResult #= HighPart >> 32.
+raw_read_w(_, _, _, _, _, _, Arg4, _, _, 40, ReadResult) :- ReadResult #= Arg4 /\ 0xFFFFFFFF.
+raw_read_w(_, _, _, _, _, _, Arg4, _, _, 44, ReadResult) :- HighPart #= Arg4 /\ 0xFFFFFFFF00000000, ReadResult #= HighPart >> 32.
+raw_read_w(_, _, _, _, _, _, _, Arg5, _, 48, ReadResult) :- ReadResult #= Arg5 /\ 0xFFFFFFFF.
+raw_read_w(_, _, _, _, _, _, _, Arg5, _, 52, ReadResult) :- HighPart #= Arg5 /\ 0xFFFFFFFF00000000, ReadResult #= HighPart >> 32.
+raw_read_w(_, _, _, _, _, _, _, _, Arg6, 56, ReadResult) :- ReadResult #= Arg6 /\ 0xFFFFFFFF.
+raw_read_w(_, _, _, _, _, _, _, _, Arg6, 60, ReadResult) :- HighPart #= Arg6 /\ 0xFFFFFFFF00000000, ReadResult #= HighPart >> 32.
 
 % One-instruction sized paths
 path_exists(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6,
