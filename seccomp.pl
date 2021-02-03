@@ -448,8 +448,10 @@ transition_exists(_, _, _, _, _, _, _, _, _,
     Nnextstep #= Nstep + Jf + 1.
 
 % Define all possible accepting final operations (the states we want to go to)
-step_accepts(Nstep, _) :- bpf_op(Nstep, bpf_ret_k, _, _, 0x7fff0000).
+step_accepts(Nstep, _) :- bpf_op(Nstep, bpf_ret_k, _, _, 0x7fff0000). % SECCOMP_RET_ALLOW
 step_accepts(Nstep, A) :- bpf_op(Nstep, bpf_ret_a, _, _, _), A #= 0x7fff0000.
+step_accepts(Nstep, _) :- bpf_op(Nstep, bpf_ret_k, _, _, 0x7ffc0000). % SECCOMP_RET_LOG
+step_accepts(Nstep, A) :- bpf_op(Nstep, bpf_ret_a, _, _, _), A #= 0x7ffc0000.
 
 % Accepting paths are paths that leads to a final state
 filter_accepts(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6) :-
