@@ -48,7 +48,7 @@ write_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, _, M14, M15, M0
 write_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, _, M15, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, NewVal, M15, 14, NewVal).
 write_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, _, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, NewVal, 15, NewVal).
 
-% Reading from the struct seccomp_data (reads must be 4-byte aligned)
+% Reading from the 64-byte-long struct seccomp_data (reads must be 4-byte aligned)
 raw_read_w(Nr, _, _, _, _, _, _, _, _, 0, Nr).
 raw_read_w(_, Arch, _, _, _, _, _, _, _, 4, Arch).
 raw_read_w(_, _, RIP, _, _, _, _, _, _, 8, ReadResult) :- ReadResult #= RIP /\ 0xFFFFFFFF.
@@ -99,7 +99,7 @@ path_exists(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6,
             Nfinal, Af, Xf, M0f, M1f, M2f, M3f, M4f, M5f, M6f, M7f, M8f, M9f, M10f, M11f, M12f, M13f, M14f, M15f).
 
 % Actual BPF operations (one-step paths)
-% (see https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/seccomp.c)
+% (see seccomp_check_filter() at https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/seccomp.c)
 
 % BPF_LD | BPF_W | BPF_ABS
 transition_exists(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6,
@@ -152,7 +152,7 @@ transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
     Nnextstep, Anext, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
     bpf_op(Nstep, bpf_alu_add_x, _, _, _),
-    Anext #= (A + X) mod 4294967296 ,
+    Anext #= (A + X) mod 4294967296,
     Nnextstep #= Nstep + 1.
 
 % BPF_ALU | BPF_SUB | BPF_K
