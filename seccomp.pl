@@ -465,11 +465,13 @@ step_accepts(Nstep, _) :- bpf_op(Nstep, bpf_ret_k, _, _, K), (K /\ 0xffff0000) #
 step_accepts(Nstep, A) :- bpf_op(Nstep, bpf_ret_a, _, _, _), (A /\ 0xffff0000) #= 0x7ffc0000.
 
 % Accepting paths are paths that leads to a final state
+% Note: we pretend memory banks and A and X are zero-initialized to ease prolog's work.
+% In practice, the BPF verifier doesn't allow referencing uninitialized variables.
 filter_accepts(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6) :-
     valid(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6),
     step_accepts(Nfinal, A),
     path_exists(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6,
-        0,      _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
+        0,      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         Nfinal, A, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _).
 % Or paths that just begin in a final state (e.g. first and only instruction is a return allow)
 filter_accepts(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6) :-
