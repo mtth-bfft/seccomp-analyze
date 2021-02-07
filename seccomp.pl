@@ -116,22 +116,6 @@ transition_exists(_, _, _, _, _, _, _, _, _,
     bpf_op(Nstep, bpf_ld_w_len, _, _, _),
     Nnextstep #= Nstep + 1.
 
-% BPF_LD | BPF_W | BPF_MEM
-transition_exists(_, _, _, _, _, _, _, _, _,
-    Nstep, _, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
-    Nnextstep, ReadResult, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
-    bpf_op(Nstep, bpf_ld_mem, _, _, K),
-    Nnextstep #= Nstep + 1,
-    read_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, K, ReadResult).
-
-% BPF_LDX | BPF_W | BPF_MEM
-transition_exists(_, _, _, _, _, _, _, _, _,
-    Nstep, A, _, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
-    Nnextstep, A, ReadResult, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
-    bpf_op(Nstep, bpf_ldx_mem, _, _, K),
-    Nnextstep #= Nstep + 1,
-    read_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, K, ReadResult).
-
 % BPF_LDX | BPF_W | BPF_LEN
 transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, A, _, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
@@ -310,18 +294,32 @@ transition_exists(_, _, _, _, _, _, _, _, _,
 % BPF_MISC | BPF_TAX
 transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, A, _, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
-    Nnextstep, A, Xnext, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
+    Nnextstep, A, A, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
     bpf_op(Nstep, bpf_misc_tax, _, _, _),
-    Xnext #= A,
     Nnextstep #= Nstep + 1.
 
 % BPF_MISC | BPF_TXA
 transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, _, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
-    Nnextstep, Anext, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
-    bpf_op(Nstep, bpf_misc_tax, _, _, _),
-    Anext #= X,
+    Nnextstep, X, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
+    bpf_op(Nstep, bpf_misc_txa, _, _, _),
     Nnextstep #= Nstep + 1.
+
+% BPF_LD | BPF_W | BPF_MEM
+transition_exists(_, _, _, _, _, _, _, _, _,
+    Nstep, _, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
+    Nnextstep, ReadResult, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
+    bpf_op(Nstep, bpf_ld_mem, _, _, K),
+    Nnextstep #= Nstep + 1,
+    read_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, K, ReadResult).
+
+% BPF_LDX | BPF_W | BPF_MEM
+transition_exists(_, _, _, _, _, _, _, _, _,
+    Nstep, A, _, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
+    Nnextstep, A, ReadResult, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
+    bpf_op(Nstep, bpf_ldx_mem, _, _, K),
+    Nnextstep #= Nstep + 1,
+    read_mem(M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, K, ReadResult).
 
 % BPF_ST
 transition_exists(_, _, _, _, _, _, _, _, _,
@@ -352,10 +350,9 @@ transition_exists(_, _, _, _, _, _, _, _, _,
 
 % BPF_JMP | BPF_JEQ | BPF_K
 transition_exists(_, _, _, _, _, _, _, _, _,
-    Nstep,     A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
-    Nnextstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
+    Nstep,     K, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
+    Nnextstep, K, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
     bpf_op(Nstep, bpf_jmp_jeq_k, Jt, _, K),
-    A #= K,
     Nnextstep #= Nstep + Jt + 1.
 transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep,     A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
@@ -366,10 +363,9 @@ transition_exists(_, _, _, _, _, _, _, _, _,
 
 % BPF_JMP | BPF_JEQ | BPF_X
 transition_exists(_, _, _, _, _, _, _, _, _,
-    Nstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
-    Nnextstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
+    Nstep, X, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
+    Nnextstep, X, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
     bpf_op(Nstep, bpf_jmp_jeq_x, Jt, _, _),
-    A #= X,
     Nnextstep #= Nstep + Jt + 1.
 transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
@@ -396,13 +392,13 @@ transition_exists(_, _, _, _, _, _, _, _, _,
 transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
     Nnextstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
-    bpf_op(Nstep, bpf_jmp_jge_k, Jt, _, _),
+    bpf_op(Nstep, bpf_jmp_jge_x, Jt, _, _),
     A #>= X,
     Nnextstep #= Nstep + Jt + 1.
 transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
     Nnextstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
-    bpf_op(Nstep, bpf_jmp_jge_k, _, Jf, _),
+    bpf_op(Nstep, bpf_jmp_jge_x, _, Jf, _),
     A #< X,
     Nnextstep #= Nstep + Jf + 1.
 
@@ -425,7 +421,8 @@ transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
     Nnextstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
     bpf_op(Nstep, bpf_jmp_jgt_x, Jt, _, _),
-    A #> X, Nnextstep #= Nstep + Jt + 1.
+    A #> X,
+    Nnextstep #= Nstep + Jt + 1.
 transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
     Nnextstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
@@ -438,13 +435,13 @@ transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
     Nnextstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
     bpf_op(Nstep, bpf_jmp_jset_k, Jt, _, K),
-    A /\ K #\= 0,
+    (A /\ K) #\= 0,
     Nnextstep #= Nstep + Jt + 1.
 transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
     Nnextstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
     bpf_op(Nstep, bpf_jmp_jset_k, _, Jf, K),
-    A /\ K #= 0,
+    (A /\ K) #= 0,
     Nnextstep #= Nstep + Jf + 1.
 
 % BPF_JMP | BPF_JSET | BPF_X
@@ -452,13 +449,13 @@ transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
     Nnextstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
     bpf_op(Nstep, bpf_jmp_jset_x, Jt, _, _),
-    A /\ X #\= 0,
+    (A /\ X) #\= 0,
     Nnextstep #= Nstep + Jt + 1.
 transition_exists(_, _, _, _, _, _, _, _, _,
     Nstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15,
     Nnextstep, A, X, M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) :-
     bpf_op(Nstep, bpf_jmp_jset_x, _, Jf, _),
-    A /\ X #= 0,
+    (A /\ X) #= 0,
     Nnextstep #= Nstep + Jf + 1.
 
 % Define all possible accepting final operations (the states we want to go to)
