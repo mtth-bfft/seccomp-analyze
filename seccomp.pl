@@ -2,7 +2,7 @@
 
 % Basic bounds enforced on kernel-provided variables due to their intrinsic storage size (see struct seccomp_data definition)
 valid(Nr, Arch, Rip, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6) :-
-    Nr #>= 0, Nr #=< 0xffffffff,
+    Nr #>= 0, Nr #< 4096, % BPF_MAXINSNS
     Arch #>= 0, Arch #=< 0xffffffff,
     Rip #>= 0, Rip #=< 0xffffffffffffffff,
     Arg1 #>= 0, Arg1 #=< 0xffffffffffffffff,
